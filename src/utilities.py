@@ -15,8 +15,9 @@ def get_SVD_decomp(images):
     U, svd_vals, V = svd(flattened_images)
     return U, svd_vals, V
 
-def graph_SVDs(svd_vals, labels = None, title = None):
+def graph_SVDs(svd_vals, labels = None, title = None, legend_font_size = 10, lower_y_bound = 10**(-4.5)):
     #print(type(svd_vals))
+    
     if type(svd_vals) is list:
         for svds, label in zip(svd_vals, labels):
             #print("svds", svds)
@@ -28,7 +29,8 @@ def graph_SVDs(svd_vals, labels = None, title = None):
     if title is not None:
         plt.title(title)
     plt.yscale("log")
-    plt.legend()
+    plt.ylim(lower_y_bound, None)
+    plt.legend(fontsize = legend_font_size)
     plt.show()
     
     
@@ -74,15 +76,18 @@ def graph_image(image, label=torch.tensor(0), graph_center = False, graph_point=
         plt.legend()
     plt.show()
     
-def graph_images(images,  labels = None, graph_points = None, graph_centers = False, figure_size=100, BATCH_SIZE=256):
+def graph_images(images,  labels = None, graph_points = None, graph_centers = False, figure_size=40, BATCH_SIZE=256,font_size = 20, labels_are_nums = False):
     plt.figure(figsize=(figure_size,figure_size))
     for i in range(len(images)):
         image = images[i]
-        plt.subplot(int(math.sqrt(BATCH_SIZE)), int(math.sqrt(BATCH_SIZE)), i + 1)
+        plt.subplot(int(math.sqrt(BATCH_SIZE))+1, int(math.sqrt(BATCH_SIZE))+1, i + 1)
         plt.imshow(image.squeeze(), cmap="gray")
         if labels is not None:
            label = labels[i]
-           plt.title(f"{label}", fontsize = figure_size/4)
+           if labels_are_nums:
+               plt.title(f"Label: {label}", fontsize = font_size)
+           else:   
+            plt.title(f"{label}", fontsize = font_size)
         width = image[0].size(1)
         height = image[0].size(0)
         if graph_centers:
@@ -92,11 +97,21 @@ def graph_images(images,  labels = None, graph_points = None, graph_centers = Fa
             plt.plot(graph_point[0], graph_point[1], marker='o', markersize=5, color='blue', label = "Center of brightness")
             
         if graph_centers or graph_points is not None:
-            plt.legend(fontsize = figure_size/10)
+            plt.legend(fontsize = figure_size/3)
         plt.axis("off")
     plt.show()
 
+def get_feature_approximation_fn(dataset):
+    U,S,V = get_SVD_decomp(dataset)
+    V = torch.from_numpy(V)
+    return lambda n, image: (V[:n].T @ V[:n] @ image.flatten()).reshape(28,28).unsqueeze(0)
 
+
+def get_variance_explained(S):
+    total = sum(S**2)
+    return S**2 / total
+        
+        
 
 def generate_box_image(sample_image):
     new_image = torch.zeros_like(sample_image)
